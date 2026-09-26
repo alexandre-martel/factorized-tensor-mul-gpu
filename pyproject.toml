@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "factorized-inference-assignment"
+version = "0.3.0"
+description = "Custom GPU kernel exercise for a synthetic factorized linear operator"
+requires-python = ">=3.11"
+dependencies = ["torch==2.14.0", "numpy==2.3.5"]
+
+[project.optional-dependencies]
+test = ["pytest==9.1.1"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"

@@ -102,15 +102,19 @@ def main():
             except Exception as exc:  # e.g. not enough shared memory on this GPU
                 row = {"config": config, "ok": False, "error": repr(exc)[:300]}
             case["configs"].append(row)
+        report["cases"].append(case)
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(json.dumps(report, indent=2) + "\n")  # saved after every case
         good = [row for row in case["configs"] if row["ok"]]
+        if not good:
+            print(f"R={rank:2d} T={tokens:2d}  no correct config (see {args.output})", flush=True)
+            continue
         case["best"] = best = min(good, key=lambda row: row["stream_ms"])
         tuned[config_key(spec, tokens)] = best["config"]
-        report["cases"].append(case)
         print(f"R={rank:2d} T={tokens:2d}  dense {case['dense_ms'] * 1e3:7.1f} us  reference "
               f"{case['reference_ms'] * 1e3:7.1f} us  fused {best['stream_ms'] * 1e3:7.1f} us "
               f"{tuple(best['config'])}  dispatch {best['dispatch_us']:.1f} us  "
               f"({len(good)}/{len(case['configs'])} configs ok)", flush=True)
-    args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2) + "\n")
     if args.write:
         TUNED_PATH.write_text(json.dumps(tuned, indent=2) + "\n")

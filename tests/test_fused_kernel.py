@@ -27,7 +27,7 @@ for spec, tokens, config in cases:
     actual = tr_forward_fused(x, cores, spec, config) if config else prepare_optimized(cores, spec)(x)
     assert actual.dtype == torch.float16 and actual.shape == expected.shape
     torch.testing.assert_close(actual.double(), expected, rtol=2e-2, atol=2e-2)
-    print(spec.rank, spec.input_modes, tokens, config or default_config(spec, tokens < 4),
+    print(spec.rank, spec.input_modes, tokens, config or default_config(spec, tokens),
           f"max_abs_err={(actual.double() - expected).abs().max().item():.2e}")
 """
 

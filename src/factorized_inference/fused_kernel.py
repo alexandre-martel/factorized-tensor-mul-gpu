@@ -18,13 +18,18 @@ are read in place (no packed copy, no workspace, no dense weight).
 from __future__ import annotations
 
 import functools
+import json
+from pathlib import Path
 
 import torch
 import triton
 import triton.language as tl
 
+# Fastest config per case on the benchmark GPU, written by benchmarks/tune.py.
+TUNED_PATH = Path(__file__).with_name("tuned_configs.json")
 
-@triton.jit
+
+@triton.jit(do_not_specialize=["T"])  # one binary for every token count
 def _tr_fused_kernel(x_ptr, a_ptr, b_ptr, c_ptr, y_ptr, T,
                      I0: tl.constexpr, I1: tl.constexpr, I2: tl.constexpr,
                      O0: tl.constexpr, O1: tl.constexpr, O2: tl.constexpr, R: tl.constexpr,
@@ -90,18 +95,31 @@ def _pads(spec):
             max(16, p2(spec.output_modes[2])), rp)
 
 
-@functools.lru_cache(maxsize=None)
-def default_config(spec, small):
-    """(BT, PC, KC, KS, num_warps). Dot-3 rows are (t, p), so BT * PC must be >= 16."""
+def config_key(spec, tokens):
+    return f"{spec.input_modes}|{spec.output_modes}|{spec.rank}|{tokens}"
+
+
+def valid_config(spec, config):
     ip, _, _, rp = _pads(spec)
-    bt, pc = (1, 16) if small else (4, 4)
+    bt, pc, kc, _, _ = config
+    return min(bt * pc, pc * rp, bt * kc * rp, ip * bt * kc) >= 16
+
+
+@functools.lru_cache(maxsize=None)
+def default_config(spec, tokens):
+    """(BT, PC, KC, KS, num_warps): tuned table if it has this case, else a safe heuristic."""
+    tuned = json.loads(TUNED_PATH.read_text()) if TUNED_PATH.exists() else {}
+    if config_key(spec, tokens) in tuned:
+        return tuple(tuned[config_key(spec, tokens)])
+    ip, _, _, rp = _pads(spec)
+    bt, pc = (1, 16) if tokens < 4 else (4, 4)  # dot-3 rows are (t, p): BT * PC = 16
     return bt, pc, max(2, 16 // (bt * rp), 16 // (ip * bt)), 1, 4 if rp <= 8 else 8
 
 
 def tr_forward_fused(x: torch.Tensor, cores, spec, config=None) -> torch.Tensor:
     """Launch the fused kernel. x and cores must be contiguous and share a dtype/device."""
     tokens = x.shape[0]
-    bt, pc, kc, ks, warps = config or default_config(spec, tokens < 4)
+    bt, pc, kc, ks, warps = config or default_config(spec, tokens)
     ip, jp, op, rp = _pads(spec)
     y = (torch.zeros if ks > 1 else torch.empty)(tokens, spec.out_features, device=x.device, dtype=x.dtype)
     cps = triton.cdiv(triton.cdiv(spec.input_modes[2], kc), ks)  # k chunks per split

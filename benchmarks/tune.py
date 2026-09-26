@@ -60,10 +60,16 @@ def dispatch_us(fn, calls=200):
 
 
 def candidates(spec, tokens):
-    """(BT, PC, KC, KS, num_warps) with BT * PC = 16 (dot-3 rows) and valid dot shapes."""
+    """(BT, PC, KC, KS, num_warps) with BT * PC = 16 (dot-3 rows) and valid dot shapes.
+
+    R=16 with KC=4 or 4 warps is skipped: ahead-of-time compilation for sm_80/sm_90 showed
+    register spills or more shared memory than an A100 has.
+    """
     for config in itertools.product((1, 2, 4, 8), (2, 4, 8, 16), (1, 2, 4), (1, 2, 5, 10), (4, 8)):
-        bt, pc, _, ks, _ = config
-        if bt * pc == 16 and bt <= max(4, tokens) and (tokens <= 8 or ks <= 2) and valid_config(spec, config):
+        bt, pc, kc, ks, warps = config
+        heavy = spec.rank > 8 and (kc > 2 or warps < 8)
+        if (bt * pc == 16 and bt <= max(4, tokens) and (tokens <= 8 or ks <= 2) and not heavy
+                and valid_config(spec, config)):
             yield config
 
 

@@ -112,8 +112,11 @@ def default_config(spec, tokens):
     if config_key(spec, tokens) in tuned:
         return tuple(tuned[config_key(spec, tokens)])
     ip, _, _, rp = _pads(spec)
-    bt, pc = (1, 16) if tokens < 4 else (4, 4)  # dot-3 rows are (t, p): BT * PC = 16
-    return bt, pc, max(2, 16 // (bt * rp), 16 // (ip * bt)), 1, 4 if rp <= 8 else 8
+    # Dot-3 rows are (t, p): BT * PC = 16. For R > 8, (4, 4, KC=1) keeps shared memory at
+    # 48 KB on sm_80+ (larger tiles spill or exceed the 99 KB limit of sm_86/sm_89).
+    bt, pc = (1, 16) if tokens < 4 and rp <= 8 else (4, 4)
+    kc = max(2 if rp <= 8 else 1, 16 // (bt * rp), 16 // (ip * bt))
+    return bt, pc, kc, 1, 4 if rp <= 8 else 8
 
 
 def tr_forward_fused(x: torch.Tensor, cores, spec, config=None) -> torch.Tensor:

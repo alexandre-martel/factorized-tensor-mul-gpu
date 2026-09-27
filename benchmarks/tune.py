@@ -98,9 +98,10 @@ def main():
             try:
                 run()  # first call: JIT launch; the checked and timed calls use the direct launcher
                 out = run().float()
-                row = {"config": config, "ok": torch.allclose(out, expected, rtol=2e-2, atol=2e-2),
-                       "max_abs_err": (out - expected).abs().max().item(),
+                row = {"config": config, "max_abs_err": (out - expected).abs().max().item(),
                        "stream_ms": stream_ms(run), "dispatch_us": dispatch_us(run)}
+                row["ok"] = all(torch.allclose(o, expected, rtol=2e-2, atol=2e-2)  # before and after
+                                for o in (out, run().float()))  # ~300 timed calls (scratch reuse)
             except Exception as exc:  # e.g. not enough shared memory on this GPU
                 row = {"config": config, "ok": False, "error": repr(exc)[:300]}
             case["configs"].append(row)

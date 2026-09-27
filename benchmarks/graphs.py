@@ -1,9 +1,9 @@
-"""Optional CUDA-graph comparison (separate from the required, uncaptured results).
+"""Optional CUDA-graph comparison, separate from the required uncaptured results.
 
-All three methods get the same treatment: warm up, capture one call into a CUDA graph
-with a static input buffer, then time "copy the new input into the buffer + replay" with
-the harness's CUDA-event method. Capture time and the graph's extra memory are reported,
-and the replayed output is checked against an FP32 oracle.
+The three methods get the same treatment. Each one is warmed up and one call is captured
+with a static input buffer. The timed step copies the input into that buffer and replays
+the graph, measured with the harness's CUDA-event method. Capture time and graph memory
+are reported and the replayed output is checked against an FP32 oracle.
 
     python benchmarks/graphs.py
 """
@@ -28,7 +28,7 @@ def graph_row(fn, x, expected):
     static_x = x.clone()
     side = torch.cuda.Stream()
     side.wait_stream(torch.cuda.current_stream())
-    with torch.cuda.stream(side):  # warm-up (compilation, launcher caches) off the capture
+    with torch.cuda.stream(side):  # warm-up outside the capture
         for _ in range(3):
             fn(static_x)
     torch.cuda.current_stream().wait_stream(side)
@@ -40,7 +40,7 @@ def graph_row(fn, x, expected):
     capture_ms, graph_mib = (time.perf_counter() - start) * 1e3, (torch.cuda.memory_allocated() - before) / 2**20
 
     def replay():
-        static_x.copy_(x)  # a new input has to be copied into the captured buffer
+        static_x.copy_(x)  # copy the new input into the captured buffer
         graph.replay()
 
     ms = stream_ms(replay)

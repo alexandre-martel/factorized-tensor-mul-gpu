@@ -1,10 +1,9 @@
-"""GPU sweep of the fused kernel's tile configs on the five required cases.
+"""Config sweep for the fused kernel on the five required cases (GPU).
 
-Each candidate is checked against an FP32 dense oracle, then timed like the harness:
-CUDA-event stream latency (median of 5 blocks of 20 uncaptured calls after 20 warm-up
-calls). Host dispatch cost (wall time per call, no synchronisation) is also recorded.
-Writes the whole sweep to --output and, with --write, the fastest correct config per
-case to src/factorized_inference/tuned_configs.json (read by default_config).
+Each config is checked against an FP32 dense oracle and timed like the harness: CUDA-event
+stream latency, median of 5 blocks of 20 calls after 20 warm-up calls. Host dispatch time
+per call is also recorded. With --write, the fastest correct config per case is written to
+src/factorized_inference/tuned_configs.json.
 
     python benchmarks/tune.py --output results/tune.json --write
 """
@@ -60,11 +59,10 @@ def dispatch_us(fn, calls=200):
 
 
 def candidates(spec, tokens):
-    """Stage 1, tile shapes: (BT, PC, KC, KS, num_warps, 3 pipeline stages = Triton's default)
-    with BT * PC = 16 dot-3 rows (or 32 from 8 tokens) and valid dot shapes.
+    """Stage 1: tile shapes with 3 pipeline stages (Triton's default).
 
-    R=16 with KC=4 or 4 warps is skipped: ahead-of-time compilation for sm_80/sm_90 showed
-    register spills or more shared memory than an A100 has.
+    BT * PC is 16, or 32 from 8 tokens. R=16 with KC=4 or 4 warps is skipped because offline
+    compilation for sm_80 and sm_90 showed register spills or too much shared memory.
     """
     for bt, pc, kc, ks, warps in itertools.product((1, 2, 4, 8), (2, 4, 8, 16), (1, 2, 4), (1, 2, 5, 10), (4, 8)):
         heavy = spec.rank > 8 and (kc > 2 or warps < 8)
@@ -74,7 +72,7 @@ def candidates(spec, tokens):
 
 
 def refinements(best):
-    """Stage 2: warp counts and pipeline stages around the fastest stage-1 tile shapes."""
+    """Stage 2: warps and pipeline stages for the six fastest tile shapes."""
     for bt, pc, kc, ks, _, _ in best:
         for warps, stages in itertools.product((2, 4, 8), (1, 2, 3, 4)):
             yield bt, pc, kc, ks, warps, stages
@@ -104,13 +102,13 @@ def main():
             fused = FusedTR(cores, spec, config)
             run = lambda: fused(x)  # noqa: E731
             try:
-                run()  # first call: JIT launch; the checked and timed calls use the direct launcher
+                run()  # first call compiles, later calls use the direct launcher
                 out = run().float()
                 row = {"config": config, "max_abs_err": (out - expected).abs().max().item(),
                        "stream_ms": stream_ms(run), "dispatch_us": dispatch_us(run)}
-                row["ok"] = all(torch.allclose(o, expected, rtol=2e-2, atol=2e-2)  # before and after
-                                for o in (out, run().float()))  # ~300 timed calls (scratch reuse)
-            except Exception as exc:  # e.g. not enough shared memory on this GPU
+                # checked again after the timed calls, which reuse the split-K scratch
+                row["ok"] = all(torch.allclose(o, expected, rtol=2e-2, atol=2e-2) for o in (out, run().float()))
+            except Exception as exc:  # for example not enough shared memory
                 row = {"config": config, "ok": False, "error": repr(exc)[:300]}
             case["configs"].append(row)
 

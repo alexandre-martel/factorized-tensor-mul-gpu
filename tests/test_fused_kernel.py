@@ -17,8 +17,8 @@ from factorized_inference.fused_kernel import FusedTR, default_config
 R8, R16, TINY = TRSpec(rank=8), TRSpec(rank=16), TRSpec((2, 3, 2), (2, 4, 3), 3)
 cases = [(R8, t, None) for t in (1, 3, 4, 8, 32)] + [(R16, t, None) for t in (1, 32)]
 cases += [(TINY, t, None) for t in (1, 5)] + [(TRSpec((4, 4, 4), (4, 4, 4), 2), 6, None)]
-# Explicit (BT, PC, KC, KS, warps, stages): split-K, incl. uneven splits and a split past the
-# k range, and larger tiles (BT * PC = 32).
+# Explicit configs (BT, PC, KC, KS, warps, stages): split-K with uneven and empty slices,
+# and a larger tile.
 cases += [(R8, 1, (1, 16, 2, 5, 4, 3)), (R8, 1, (1, 16, 2, 10, 4, 1)), (R16, 1, (1, 16, 2, 3, 8, 2)),
           (R16, 32, (4, 4, 2, 2, 8, 3)), (TINY, 1, (1, 16, 4, 2, 4, 3)), (R8, 8, (4, 8, 2, 5, 2, 4))]
 for spec, tokens, config in cases:
@@ -26,7 +26,7 @@ for spec, tokens, config in cases:
     x = torch.randn(tokens, spec.in_features, generator=torch.Generator().manual_seed(7)).half()
     expected = x.double() @ materialize_dense_weight([c.double() for c in cores], spec).T
     run = FusedTR(cores, spec, config) if config else prepare_optimized(cores, spec)
-    for _ in range(2):  # the 2nd call reuses the split-K scratch: counters must have reset
+    for _ in range(2):  # the second call checks that the split-K counters were reset
         actual = run(x)
         assert actual.dtype == torch.float16 and actual.shape == expected.shape
         torch.testing.assert_close(actual.double(), expected, rtol=2e-2, atol=2e-2)

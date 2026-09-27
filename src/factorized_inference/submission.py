@@ -9,10 +9,10 @@ from .reference import TRSpec, _validate, tr_forward_reference
 
 try:
     from .fused_kernel import FusedTR, tr_forward_fused
-except ImportError:  # Triton unavailable (e.g. CPU-only install): reference fallback only.
+except ImportError:  # no Triton: reference only
     FusedTR = tr_forward_fused = None
 
-# TRITON_INTERPRET=1 runs the Triton kernel on CPU tensors (used by the CPU test suite).
+# TRITON_INTERPRET=1 runs the kernel on CPU tensors (used in tests).
 _INTERPRET = os.environ.get("TRITON_INTERPRET") == "1"
 
 
@@ -27,7 +27,7 @@ def tr_forward_optimized(
     cores: Sequence[torch.Tensor],
     spec: TRSpec,
 ) -> torch.Tensor:
-    """Fused single-kernel Triton path on CUDA FP16/BF16; reference fallback otherwise."""
+    """Fused kernel for CUDA FP16/BF16 inputs, reference otherwise."""
 
     if _use_kernel(x):
         _validate(x, cores, spec)
@@ -39,13 +39,11 @@ def prepare_optimized(
     cores: Sequence[torch.Tensor],
     spec: TRSpec,
 ) -> Callable[[torch.Tensor], torch.Tensor]:
-    """Validate once and bind the cores; the kernel reads them in place (no weight copy).
+    """Returns a callable that runs the fused kernel on CUDA FP16/BF16 inputs.
 
-    Reusable output storage: on CUDA, the returned tensor is a buffer reused by the next
-    call with the same token count, so consume it (or copy it) before calling again.
-    Retained state, owned by this callable (prepared callables for different weights are
-    independent): per token count, the compiled kernel's launch arguments, the output
-    buffer and the split-K scratch.
+    The cores are read in place. The returned tensor is reused by the next call with the
+    same token count, so it must be consumed first. The callable keeps, per token count,
+    the launch arguments, the output buffer and the split-K scratch.
     """
 
     cores = tuple(c.contiguous() for c in cores)  # no copy for contiguous cores

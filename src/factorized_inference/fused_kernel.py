@@ -116,13 +116,14 @@ def config_key(spec, tokens):
 
 def valid_config(spec, config):
     ip, _, _, rp = _pads(spec)
-    bt, pc, kc, _, _ = config
+    bt, pc, kc = config[:3]
     return min(bt * pc, pc * rp, bt * kc * rp, ip * bt * kc) >= 16
 
 
 @functools.lru_cache(maxsize=None)
 def default_config(spec, tokens):
-    """(BT, PC, KC, KS, num_warps): tuned table if it has this case, else a safe heuristic."""
+    """(BT, PC, KC, KS, num_warps, num_stages): tuned table if it has this case, else a
+    safe heuristic."""
     tuned = json.loads(TUNED_PATH.read_text()) if TUNED_PATH.exists() else {}
     if config_key(spec, tokens) in tuned:
         return tuple(tuned[config_key(spec, tokens)])
@@ -131,7 +132,7 @@ def default_config(spec, tokens):
     # 48 KB on sm_80+ (larger tiles spill or exceed the 99 KB limit of sm_86/sm_89).
     bt, pc = (1, 16) if tokens < 4 and rp <= 8 else (4, 4)
     kc = max(2 if rp <= 8 else 1, 16 // (bt * rp), 16 // (ip * bt))
-    return bt, pc, kc, 1, 4 if rp <= 8 else 8
+    return bt, pc, kc, 1, 4 if rp <= 8 else 8, 3
 
 
 class FusedTR:
@@ -163,7 +164,7 @@ class FusedTR:
 
     def _jit_launch(self, x):
         spec, tokens = self.spec, x.shape[0]
-        bt, pc, kc, ks, warps = self.config or default_config(spec, tokens)
+        bt, pc, kc, ks, warps, stages = self.config or default_config(spec, tokens)
         cps = triton.cdiv(triton.cdiv(spec.input_modes[2], kc), ks)  # k chunks per split
         consts = (*spec.input_modes, *spec.output_modes, spec.rank, *_pads(spec), bt, pc, kc, ks, cps)
         grid = (triton.cdiv(tokens, bt), spec.output_modes[1], triton.cdiv(spec.output_modes[0], pc) * ks)
@@ -174,7 +175,7 @@ class FusedTR:
                                      torch.zeros(grid[0] * grid[1] * grid[2] // ks, device=x.device, dtype=torch.int32))
         y, *scratch = self._scratch[tokens]
         args = (*self.cores, y, *scratch, tokens, *consts)
-        kernel = _tr_fused_kernel[grid](x, *args, num_warps=warps)
+        kernel = _tr_fused_kernel[grid](x, *args, num_warps=warps, num_stages=stages)
         if x.is_cuda and x.data_ptr() % 16 == 0:  # the CPU interpreter has no compiled launcher
             cl = kernel.run  # Triton's Python launcher; its C launch function is cl.launch
             if cl.global_scratch_size or cl.profile_scratch_size or cl.gsan_enabled:

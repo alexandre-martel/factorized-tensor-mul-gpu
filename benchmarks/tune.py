@@ -60,17 +60,24 @@ def dispatch_us(fn, calls=200):
 
 
 def candidates(spec, tokens):
-    """(BT, PC, KC, KS, num_warps) with BT * PC = 16 (dot-3 rows) and valid dot shapes.
+    """Stage 1, tile shapes: (BT, PC, KC, KS, num_warps, 3 pipeline stages = Triton's default)
+    with BT * PC = 16 dot-3 rows (or 32 from 8 tokens) and valid dot shapes.
 
     R=16 with KC=4 or 4 warps is skipped: ahead-of-time compilation for sm_80/sm_90 showed
     register spills or more shared memory than an A100 has.
     """
-    for config in itertools.product((1, 2, 4, 8), (2, 4, 8, 16), (1, 2, 4), (1, 2, 5, 10), (4, 8)):
-        bt, pc, kc, ks, warps = config
+    for bt, pc, kc, ks, warps in itertools.product((1, 2, 4, 8), (2, 4, 8, 16), (1, 2, 4), (1, 2, 5, 10), (4, 8)):
         heavy = spec.rank > 8 and (kc > 2 or warps < 8)
-        if (bt * pc == 16 and bt <= max(4, tokens) and (tokens <= 8 or ks <= 2) and not heavy
-                and valid_config(spec, config)):
-            yield config
+        if (bt * pc in ((16, 32) if tokens >= 8 else (16,)) and bt <= max(4, tokens)
+                and (tokens <= 8 or ks <= 2) and not heavy and valid_config(spec, (bt, pc, kc))):
+            yield bt, pc, kc, ks, warps, 3
+
+
+def refinements(best):
+    """Stage 2: warp counts and pipeline stages around the fastest stage-1 tile shapes."""
+    for bt, pc, kc, ks, _, _ in best:
+        for warps, stages in itertools.product((2, 4, 8), (1, 2, 3, 4)):
+            yield bt, pc, kc, ks, warps, stages
 
 
 def main():
@@ -92,7 +99,8 @@ def main():
                 "dense_ms": stream_ms(lambda: dense_forward(x, weight)),
                 "reference_ms": stream_ms(lambda: tr_forward_reference(x, cores, spec))}
         del weight
-        for config in candidates(spec, tokens):
+
+        def measure(config):
             fused = FusedTR(cores, spec, config)
             run = lambda: fused(x)  # noqa: E731
             try:
@@ -105,6 +113,15 @@ def main():
             except Exception as exc:  # e.g. not enough shared memory on this GPU
                 row = {"config": config, "ok": False, "error": repr(exc)[:300]}
             case["configs"].append(row)
+
+        for config in candidates(spec, tokens):
+            measure(config)
+        seen = {row["config"] for row in case["configs"]}
+        ranked = sorted((row for row in case["configs"] if row["ok"]), key=lambda row: row["stream_ms"])
+        for config in refinements([row["config"] for row in ranked[:6]]):
+            if config not in seen:
+                seen.add(config)
+                measure(config)
         report["cases"].append(case)
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(json.dumps(report, indent=2) + "\n")  # saved after every case

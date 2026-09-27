@@ -26,14 +26,15 @@ x = torch.randn(tokens, spec.in_features, device="cuda", dtype=torch.float16)
 fused = FusedTR(cores, spec)
 fused(x)  # first call: compile / load and cache the launch arguments
 _, grid, _, args, _ = fused._launchers[tokens]
-warps = default_config(spec, tokens)[4]
-kernel = _tr_fused_kernel[grid](x, *args, num_warps=warps)  # returns the compiled kernel
+warps, stages = default_config(spec, tokens)[4:]
+kernel = _tr_fused_kernel[grid](x, *args, num_warps=warps, num_stages=stages)  # returns the compiled kernel
 stream = triton.runtime.driver.active.get_current_stream
 weight = materialize_dense_weight(cores, spec)
 run = prepare_optimized(cores, spec)
 
 paths = {
-    "F1-F3  Triton JIT launch (kernel[grid](...))": lambda: _tr_fused_kernel[grid](x, *args, num_warps=warps),
+    "F1-F3  Triton JIT launch (kernel[grid](...))": lambda: _tr_fused_kernel[grid](
+        x, *args, num_warps=warps, num_stages=stages),
     "F4-F5  compiled launcher + torch.empty": lambda: (
         torch.empty(tokens, spec.out_features, device=x.device, dtype=x.dtype),
         kernel.run(*grid, stream(x.device.index), kernel.function, kernel.packed_metadata, None, None, None, x, *args)),

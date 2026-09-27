@@ -60,6 +60,7 @@ def _tr_fused_kernel(x_ptr, a_ptr, b_ptr, c_ptr, y_ptr, T,
     jx = tl.arange(0, JP)[:, None]
     x_ptrs = x_ptr + xt * (I0 * I1 * I2) + xi * (I1 * I2) + jx * I2 + xk
     x_mask = (xt < T) & (xi < I0) & (jx < I1)
+
     kac = tl.arange(0, KC * RP * RP)[:, None]
     ck, ca, cc = kac // (RP * RP), kac // RP % RP, kac % RP
     r = tl.arange(0, OP)[None, :]
@@ -67,6 +68,7 @@ def _tr_fused_kernel(x_ptr, a_ptr, b_ptr, c_ptr, y_ptr, T,
     c_mask = (ca < R) & (cc < R) & (r < O2)
 
     acc = tl.zeros((BT * PC, OP), dtype=tl.float32)
+    
     for k0 in range(k_lo, k_lo + CPS * KC, KC):  # chunks past I2 are fully masked
         xs = tl.load(x_ptrs + k0, mask=x_mask & (k0 + xk < I2), other=0.0)
         u = tl.dot(b_tile, xs)
@@ -119,14 +121,43 @@ def default_config(spec, tokens):
     return bt, pc, kc, 1, 4 if rp <= 8 else 8
 
 
+class FusedTR:
+    """Prepared fused forward for one set of cores (contiguous, same dtype/device as x).
+
+    The first call for a token count goes through Triton's JIT launch (compile or load
+    from cache). Later calls reuse that compiled kernel's launcher directly, skipping the
+    JIT dispatch (argument binding, specialisation key, cache lookup), which costs tens of
+    microseconds of host time per call and dominates the latency at small token counts.
+    """
+
+    def __init__(self, cores, spec, config=None):
+        self.cores, self.spec, self.config = tuple(cores), spec, config
+        self._launchers = {}  # tokens -> (launcher, function, metadata, grid, zero_init, constexprs)
+
+    def __call__(self, x: torch.Tensor) -> torch.Tensor:
+        tokens = x.shape[0]
+        cached = self._launchers.get(tokens)
+        if cached is None or x.data_ptr() % 16:  # the binary assumes 16-byte aligned pointers
+            return self._jit_launch(x)
+        launch, function, metadata, grid, zero_init, consts = cached
+        y = (torch.zeros if zero_init else torch.empty)(tokens, self.spec.out_features, device=x.device, dtype=x.dtype)
+        stream = triton.runtime.driver.active.get_current_stream(x.device.index)
+        launch(*grid, stream, function, metadata, None, None, None, x, *self.cores, y, tokens, *consts)
+        return y
+
+    def _jit_launch(self, x):
+        spec, tokens = self.spec, x.shape[0]
+        bt, pc, kc, ks, warps = self.config or default_config(spec, tokens)
+        cps = triton.cdiv(triton.cdiv(spec.input_modes[2], kc), ks)  # k chunks per split
+        consts = (*spec.input_modes, *spec.output_modes, spec.rank, *_pads(spec), bt, pc, kc, ks, cps)
+        grid = (triton.cdiv(tokens, bt), spec.output_modes[1], triton.cdiv(spec.output_modes[0], pc) * ks)
+        y = (torch.zeros if ks > 1 else torch.empty)(tokens, spec.out_features, device=x.device, dtype=x.dtype)
+        kernel = _tr_fused_kernel[grid](x, *self.cores, y, tokens, *consts, num_warps=warps)
+        if x.is_cuda and x.data_ptr() % 16 == 0:  # the CPU interpreter has no compiled launcher
+            self._launchers[tokens] = (kernel.run, kernel.function, kernel.packed_metadata, grid, ks > 1, consts)
+        return y
+
+
 def tr_forward_fused(x: torch.Tensor, cores, spec, config=None) -> torch.Tensor:
-    """Launch the fused kernel. x and cores must be contiguous and share a dtype/device."""
-    tokens = x.shape[0]
-    bt, pc, kc, ks, warps = config or default_config(spec, tokens)
-    ip, jp, op, rp = _pads(spec)
-    y = (torch.zeros if ks > 1 else torch.empty)(tokens, spec.out_features, device=x.device, dtype=x.dtype)
-    cps = triton.cdiv(triton.cdiv(spec.input_modes[2], kc), ks)  # k chunks per split
-    grid = (triton.cdiv(tokens, bt), spec.output_modes[1], triton.cdiv(spec.output_modes[0], pc) * ks)
-    _tr_fused_kernel[grid](x, *cores, y, tokens, *spec.input_modes, *spec.output_modes, spec.rank,
-                           ip, jp, op, rp, bt, pc, kc, ks, cps, num_warps=warps)
-    return y
+    """One-off launch through Triton's JIT path (no launcher reuse)."""
+    return FusedTR(cores, spec, config)(x)

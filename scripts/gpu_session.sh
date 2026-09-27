@@ -19,7 +19,9 @@ import torch
 from factorized_inference import TRSpec, make_cores, prepare_optimized, tr_forward_reference
 s = TRSpec(); c = make_cores(s, device='cuda', dtype=torch.float16)
 x = torch.randn(1, s.in_features, device='cuda', dtype=torch.float16)
-torch.testing.assert_close(prepare_optimized(c, s)(x).float(), tr_forward_reference(x, c, s).float(), rtol=2e-2, atol=2e-2)
+run, ref = prepare_optimized(c, s), tr_forward_reference(x, c, s).float()
+for _ in range(2):  # JIT launch, then the direct launcher
+    torch.testing.assert_close(run(x).float(), ref, rtol=2e-2, atol=2e-2)
 print('fused kernel runs on the GPU and matches the reference')"
 
 set +e  # from here on, run every step and always pack the artifacts

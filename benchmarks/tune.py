@@ -27,7 +27,7 @@ from factorized_inference import (  # noqa: E402
     TRSpec, dense_forward, make_cores, materialize_dense_weight, tr_forward_reference,
 )
 from factorized_inference.fused_kernel import (  # noqa: E402
-    TUNED_PATH, config_key, tr_forward_fused, valid_config,
+    TUNED_PATH, FusedTR, config_key, valid_config,
 )
 
 CASES = [(8, 1), (8, 8), (8, 32), (16, 1), (16, 32)]
@@ -93,8 +93,10 @@ def main():
                 "reference_ms": stream_ms(lambda: tr_forward_reference(x, cores, spec))}
         del weight
         for config in candidates(spec, tokens):
-            run = lambda: tr_forward_fused(x, cores, spec, config)  # noqa: E731
+            fused = FusedTR(cores, spec, config)
+            run = lambda: fused(x)  # noqa: E731
             try:
+                run()  # first call: JIT launch; the checked and timed calls use the direct launcher
                 out = run().float()
                 row = {"config": config, "ok": torch.allclose(out, expected, rtol=2e-2, atol=2e-2),
                        "max_abs_err": (out - expected).abs().max().item(),

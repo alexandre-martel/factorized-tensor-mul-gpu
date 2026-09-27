@@ -8,9 +8,9 @@ import torch
 from .reference import TRSpec, _validate, tr_forward_reference
 
 try:
-    from .fused_kernel import tr_forward_fused
+    from .fused_kernel import FusedTR, tr_forward_fused
 except ImportError:  # Triton unavailable (e.g. CPU-only install): reference fallback only.
-    tr_forward_fused = None
+    FusedTR = tr_forward_fused = None
 
 # TRITON_INTERPRET=1 runs the Triton kernel on CPU tensors (used by the CPU test suite).
 _INTERPRET = os.environ.get("TRITON_INTERPRET") == "1"
@@ -39,20 +39,22 @@ def prepare_optimized(
     cores: Sequence[torch.Tensor],
     spec: TRSpec,
 ) -> Callable[[torch.Tensor], torch.Tensor]:
-    """Validate once and bind the cores; the kernel reads them in place (no extra state).
+    """Validate once and bind the cores; the kernel reads them in place (no weight copy).
 
-    Each call returns a newly allocated output; nothing is cached between calls, so
-    prepared callables for different weights are independent.
+    Each call returns a newly allocated output. The only retained state is the compiled
+    kernel's launcher per token count, owned by this callable, so prepared callables for
+    different weights are independent.
     """
 
     cores = tuple(c.contiguous() for c in cores)  # no copy for contiguous cores
     if not _use_kernel(cores[0]):
         return lambda x: tr_forward_reference(x, cores, spec)
     _validate(torch.empty(0, spec.in_features, dtype=cores[0].dtype), cores, spec)
+    fused = FusedTR(cores, spec)
 
     def run(x: torch.Tensor) -> torch.Tensor:
         if x.ndim != 2 or x.shape[1] != spec.in_features:
             raise ValueError(f"Expected x with shape [tokens, {spec.in_features}], got {tuple(x.shape)}")
-        return tr_forward_fused(x.contiguous(), cores, spec)
+        return fused(x.contiguous())
 
     return run

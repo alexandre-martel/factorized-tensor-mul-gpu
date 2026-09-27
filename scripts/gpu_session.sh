@@ -25,9 +25,11 @@ print('fused kernel runs on the GPU and matches the reference')"
 set +e  # from here on, run every step and always pack the artifacts
 python benchmarks/tune.py --output results/tune.json --write 2>&1 | tee results/tune.txt
 pytest -q 2>&1 | tee results/pytest.txt
-python benchmarks/benchmark.py --device cuda --dtype float16 \
+# README commands with --device cuda:0 instead of cuda: with torch 2.14 the harness's
+# torch.cuda.set_device(torch.device("cuda")) raises "Expected a torch.device with a specified index".
+python benchmarks/benchmark.py --device cuda:0 --dtype float16 \
   --rank 8 --tokens 1,8,32 --output results/rank8.json --profile-dir traces/rank8
-python benchmarks/benchmark.py --device cuda --dtype float16 \
+python benchmarks/benchmark.py --device cuda:0 --dtype float16 \
   --rank 16 --tokens 1,32 --output results/rank16.json
 python -m pip freeze > results/environment.txt
 date -u +"end %FT%TZ" >> results/session_times.txt

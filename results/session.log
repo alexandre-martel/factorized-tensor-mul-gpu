@@ -1,0 +1,116 @@
+Sun Sep 27 15:52:31 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 580.178.04             Driver Version: 580.178.04     CUDA Version: 13.0     |
++-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA A100-SXM4-80GB          On  |   00000000:05:00.0 Off |                  Off |
+| N/A   34C    P0             60W /  400W |       0MiB /  81920MiB |      0%      Default |
+|                                         |                        |             Disabled |
++-----------------------------------------+------------------------+----------------------+
+
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+
+downloading uv 0.12.19 x86_64-unknown-linux-gnu
+installing to /root/.local/bin
+  uv
+  uvx
+everything's installed!
+
+To add $HOME/.local/bin to your PATH, either restart your shell or run:
+
+    source $HOME/.local/bin/env (sh, bash, zsh)
+    source $HOME/.local/bin/env.fish (fish)
+2.14.0+cu130 3.8.0 NVIDIA A100-SXM4-80GB
+fused kernel matches the reference on the GPU
+......................                                                   [100%]
+22 passed in 122.00s (0:02:01)
+USDT:2026-09-27 15:55:05 2538:2538 SyncActivityProfilerHandler.cpp:39] profiler_start
+USDT:2026-09-27 15:55:05 2538:2538 SyncActivityProfilerHandler.cpp:46] profiler_stop
+tokens=1 dense: host=0.0332 ms; CUDA stream=0.015974399447441102 ms; steady allocated peak=19589120 bytes
+USDT:2026-09-27 15:55:09 2572:2572 SyncActivityProfilerHandler.cpp:39] profiler_start
+USDT:2026-09-27 15:55:09 2572:2572 SyncActivityProfilerHandler.cpp:46] profiler_stop
+tokens=1 factorized_reference: host=0.2894 ms; CUDA stream=0.26961920261383054 ms; steady allocated peak=9672704 bytes
+USDT:2026-09-27 15:55:13 2608:2608 SyncActivityProfilerHandler.cpp:39] profiler_start
+USDT:2026-09-27 15:55:13 2608:2608 SyncActivityProfilerHandler.cpp:46] profiler_stop
+tokens=1 factorized_optimized: host=0.0229 ms; CUDA stream=0.010547199845314026 ms; steady allocated peak=215040 bytes
+tokens=8 dense: host=0.0360 ms; CUDA stream=0.022067199647426605 ms; steady allocated peak=19655680 bytes
+tokens=8 factorized_reference: host=0.2845 ms; CUDA stream=0.28047358989715576 ms; steady allocated peak=17010688 bytes
+tokens=8 factorized_optimized: host=0.0289 ms; CUDA stream=0.017100800573825837 ms; steady allocated peak=627200 bytes
+tokens=32 dense: host=0.0307 ms; CUDA stream=0.015411199629306793 ms; steady allocated peak=19886080 bytes
+tokens=32 factorized_reference: host=0.2882 ms; CUDA stream=0.27340800762176515 ms; steady allocated peak=43612160 bytes
+tokens=32 factorized_optimized: host=0.0533 ms; CUDA stream=0.040652799606323245 ms; steady allocated peak=1134592 bytes
+Wrote results/rank8.json
+tokens=1 dense: host=0.0348 ms; CUDA stream=0.016332800686359405 ms; steady allocated peak=19589120 bytes
+tokens=1 factorized_reference: host=0.3114 ms; CUDA stream=0.2894848108291626 ms; steady allocated peak=13119488 bytes
+tokens=1 factorized_optimized: host=0.0467 ms; CUDA stream=0.03461120128631592 ms; steady allocated peak=482304 bytes
+tokens=32 dense: host=0.0341 ms; CUDA stream=0.016383999586105348 ms; steady allocated peak=19886080 bytes
+tokens=32 factorized_reference: host=0.4924 ms; CUDA stream=0.4098559856414795 ms; steady allocated peak=145375232 bytes
+tokens=32 factorized_optimized: host=0.4002 ms; CUDA stream=0.3848191976547241 ms; steady allocated peak=1401856 bytes
+Wrote results/rank16.json
+tokens=1 dense: host=0.0330 ms; CUDA stream=0.015718400478363037 ms; steady allocated peak=19589120 bytes
+tokens=1 factorized_reference: host=0.2884 ms; CUDA stream=0.2778624057769775 ms; steady allocated peak=9672704 bytes
+tokens=1 factorized_optimized: host=0.0234 ms; CUDA stream=0.010700800269842149 ms; steady allocated peak=215040 bytes
+tokens=8 dense: host=0.0351 ms; CUDA stream=0.02309119999408722 ms; steady allocated peak=19655680 bytes
+tokens=8 factorized_reference: host=0.3046 ms; CUDA stream=0.2896384000778198 ms; steady allocated peak=17010688 bytes
+tokens=8 factorized_optimized: host=0.0297 ms; CUDA stream=0.017151999473571777 ms; steady allocated peak=627200 bytes
+tokens=32 dense: host=0.0304 ms; CUDA stream=0.01515520066022873 ms; steady allocated peak=19886080 bytes
+tokens=32 factorized_reference: host=0.2796 ms; CUDA stream=0.2732032060623169 ms; steady allocated peak=43612160 bytes
+tokens=32 factorized_optimized: host=0.0533 ms; CUDA stream=0.04080640077590943 ms; steady allocated peak=1134592 bytes
+Wrote results/repeats/rank8_run2.json
+tokens=1 dense: host=0.0308 ms; CUDA stream=0.01669120043516159 ms; steady allocated peak=19589120 bytes
+tokens=1 factorized_reference: host=0.3114 ms; CUDA stream=0.29706239700317383 ms; steady allocated peak=13119488 bytes
+tokens=1 factorized_optimized: host=0.0463 ms; CUDA stream=0.033843201398849485 ms; steady allocated peak=482304 bytes
+tokens=32 dense: host=0.0308 ms; CUDA stream=0.015872000157833098 ms; steady allocated peak=19886080 bytes
+tokens=32 factorized_reference: host=0.5254 ms; CUDA stream=0.4419072151184082 ms; steady allocated peak=145375232 bytes
+tokens=32 factorized_optimized: host=0.3415 ms; CUDA stream=0.3278847932815552 ms; steady allocated peak=1401856 bytes
+Wrote results/repeats/rank16_run2.json
+tokens=1 dense: host=0.0307 ms; CUDA stream=0.015411199629306793 ms; steady allocated peak=19589120 bytes
+tokens=1 factorized_reference: host=0.2929 ms; CUDA stream=0.2720767974853516 ms; steady allocated peak=9672704 bytes
+tokens=1 factorized_optimized: host=0.0208 ms; CUDA stream=0.008755200356245042 ms; steady allocated peak=215040 bytes
+tokens=8 dense: host=0.0372 ms; CUDA stream=0.022681599855422972 ms; steady allocated peak=19655680 bytes
+tokens=8 factorized_reference: host=0.3006 ms; CUDA stream=0.28492801189422606 ms; steady allocated peak=17010688 bytes
+tokens=8 factorized_optimized: host=0.0294 ms; CUDA stream=0.017049600183963776 ms; steady allocated peak=627200 bytes
+tokens=32 dense: host=0.0331 ms; CUDA stream=0.016179199516773223 ms; steady allocated peak=19886080 bytes
+tokens=32 factorized_reference: host=0.2946 ms; CUDA stream=0.2796031951904297 ms; steady allocated peak=43612160 bytes
+tokens=32 factorized_optimized: host=0.0621 ms; CUDA stream=0.04971520006656647 ms; steady allocated peak=1134592 bytes
+Wrote results/repeats/rank8_run3.json
+tokens=1 dense: host=0.0313 ms; CUDA stream=0.01669120043516159 ms; steady allocated peak=19589120 bytes
+tokens=1 factorized_reference: host=0.3036 ms; CUDA stream=0.293120002746582 ms; steady allocated peak=13119488 bytes
+tokens=1 factorized_optimized: host=0.0543 ms; CUDA stream=0.04152320027351379 ms; steady allocated peak=482304 bytes
+tokens=32 dense: host=0.0323 ms; CUDA stream=0.015564799308776855 ms; steady allocated peak=19886080 bytes
+tokens=32 factorized_reference: host=0.4654 ms; CUDA stream=0.38297600746154786 ms; steady allocated peak=145375232 bytes
+tokens=32 factorized_optimized: host=0.3691 ms; CUDA stream=0.3551743984222412 ms; steady allocated peak=1401856 bytes
+Wrote results/repeats/rank16_run3.json
+NVIDIA A100-SXM4-80GB, config (1, 16, 2, 10, 4, 3)
+Triton JIT launch                    dispatch   22.0 us   stream   23.4 us
+compiled launcher + new output       dispatch   13.3 us   stream   14.0 us
+C launch + reused output (FusedTR)   dispatch    6.7 us   stream   10.4 us
+prepare_optimized callable           dispatch    8.0 us   stream   10.5 us
+dense F.linear                       dispatch   16.2 us   stream   17.2 us
+torch.empty(1, 2880) alone           dispatch    4.3 us
+current stream query alone           dispatch    0.1 us
+NVIDIA A100-SXM4-80GB: CUDA-graph replay (input copy included)
+R= 8 T= 1 dense                 replay    17.5 us   capture    0.8 ms   graph memory   8.13 MiB   correct True
+R= 8 T= 1 factorized_reference  replay    37.3 us   capture    1.5 ms   graph memory   8.13 MiB   correct True
+R= 8 T= 1 factorized_optimized  replay    13.2 us   capture    0.9 ms   graph memory   0.00 MiB   correct True
+R= 8 T= 8 dense                 replay    14.5 us   capture    1.2 ms   graph memory   8.17 MiB   correct True
+R= 8 T= 8 factorized_reference  replay    64.2 us   capture    1.5 ms   graph memory   8.17 MiB   correct True
+R= 8 T= 8 factorized_optimized  replay    24.2 us   capture    0.7 ms   graph memory   0.00 MiB   correct True
+R= 8 T=32 dense                 replay    17.9 us   capture    1.0 ms   graph memory   8.30 MiB   correct True
+R= 8 T=32 factorized_reference  replay   141.7 us   capture    1.7 ms   graph memory   8.30 MiB   correct True
+R= 8 T=32 factorized_optimized  replay    51.4 us   capture    0.8 ms   graph memory   0.00 MiB   correct True
+R=16 T= 1 dense                 replay    17.4 us   capture    1.1 ms   graph memory   8.13 MiB   correct True
+R=16 T= 1 factorized_reference  replay    50.7 us   capture    1.4 ms   graph memory   8.13 MiB   correct True
+R=16 T= 1 factorized_optimized  replay    43.7 us   capture    0.6 ms   graph memory   0.00 MiB   correct True
+R=16 T=32 dense                 replay    17.9 us   capture    1.2 ms   graph memory   8.30 MiB   correct True
+R=16 T=32 factorized_reference  replay   424.8 us   capture    2.0 ms   graph memory   8.30 MiB   correct True
+R=16 T=32 factorized_optimized  replay   331.0 us   capture    1.0 ms   graph memory   0.00 MiB   correct True
+Done. Copy gpu_artifacts.tgz back, then delete the instance.

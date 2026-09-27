@@ -1,0 +1,6 @@
+R= 8 T= 1  dense    14.7 us  reference   317.8 us  fused    10.4 us (1, 16, 2, 10, 4)  dispatch 5.1 us  (64/64 configs ok)
+R= 8 T= 8  dense    23.5 us  reference   326.8 us  fused    20.8 us (4, 4, 2, 5, 4)  dispatch 4.7 us  (88/88 configs ok)
+R= 8 T=32  dense    16.2 us  reference   323.8 us  fused    59.9 us (2, 8, 4, 1, 4)  dispatch 4.7 us  (44/44 configs ok)
+R=16 T= 1  dense    15.0 us  reference   344.2 us  fused    40.7 us (1, 16, 2, 10, 8)  dispatch 4.9 us  (20/20 configs ok)
+R=16 T=32  dense    16.2 us  reference   456.9 us  fused   351.7 us (4, 4, 1, 2, 8)  dispatch 4.9 us  (14/14 configs ok)
+Wrote /root/tr/src/factorized_inference/tuned_configs.json

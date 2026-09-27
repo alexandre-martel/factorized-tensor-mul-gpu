@@ -1,0 +1,23 @@
+USDT:2026-09-27 14:26:48 4779:4779 SyncActivityProfilerHandler.cpp:39] profiler_start
+USDT:2026-09-27 14:26:48 4779:4779 SyncActivityProfilerHandler.cpp:46] profiler_stop
+tokens=1 dense: host=0.0319 ms; CUDA stream=0.014694400131702423 ms; steady allocated peak=19589120 bytes
+USDT:2026-09-27 14:26:51 4813:4813 SyncActivityProfilerHandler.cpp:39] profiler_start
+USDT:2026-09-27 14:26:51 4813:4813 SyncActivityProfilerHandler.cpp:46] profiler_stop
+tokens=1 factorized_reference: host=0.2917 ms; CUDA stream=0.27407360076904297 ms; steady allocated peak=9672704 bytes
+USDT:2026-09-27 14:26:55 4847:4847 SyncActivityProfilerHandler.cpp:39] profiler_start
+USDT:2026-09-27 14:26:55 4847:4847 SyncActivityProfilerHandler.cpp:46] profiler_stop
+tokens=1 factorized_optimized: host=0.0654 ms; CUDA stream=0.037478399276733396 ms; steady allocated peak=99328 bytes
+tokens=8 dense: host=0.0351 ms; CUDA stream=0.021452799439430237 ms; steady allocated peak=19655680 bytes
+tokens=8 factorized_reference: host=0.2831 ms; CUDA stream=0.27412478923797606 ms; steady allocated peak=17010688 bytes
+tokens=8 factorized_optimized: host=0.0663 ms; CUDA stream=0.037222400307655334 ms; steady allocated peak=165888 bytes
+tokens=32 dense: host=0.0297 ms; CUDA stream=0.0144896000623703 ms; steady allocated peak=19886080 bytes
+tokens=32 factorized_reference: host=0.2753 ms; CUDA stream=0.26987519264221194 ms; steady allocated peak=43612160 bytes
+tokens=32 factorized_optimized: host=0.1072 ms; CUDA stream=0.06824960112571717 ms; steady allocated peak=396288 bytes
+Wrote results/rank8.json
+tokens=1 dense: host=0.0312 ms; CUDA stream=0.014028799533843995 ms; steady allocated peak=19589120 bytes
+tokens=1 factorized_reference: host=0.3024 ms; CUDA stream=0.28871679306030273 ms; steady allocated peak=13119488 bytes
+tokens=1 factorized_optimized: host=0.0930 ms; CUDA stream=0.05314559936523437 ms; steady allocated peak=366592 bytes
+tokens=32 dense: host=0.0295 ms; CUDA stream=0.013926400244235993 ms; steady allocated peak=19886080 bytes
+tokens=32 factorized_reference: host=0.4910 ms; CUDA stream=0.40975360870361327 ms; steady allocated peak=145375232 bytes
+tokens=32 factorized_optimized: host=0.4339 ms; CUDA stream=0.3828223943710327 ms; steady allocated peak=663552 bytes
+Wrote results/rank16.json

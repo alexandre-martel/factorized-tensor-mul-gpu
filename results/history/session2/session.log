@@ -1,0 +1,64 @@
+Sun Sep 27 14:41:00 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 580.178.04             Driver Version: 580.178.04     CUDA Version: 13.0     |
++-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA A100-SXM4-80GB          On  |   00000000:05:00.0 Off |                  Off |
+| N/A   31C    P0             52W /  400W |       0MiB /  81920MiB |      0%      Default |
+|                                         |                        |             Disabled |
++-----------------------------------------+------------------------+----------------------+
+
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+
+downloading uv 0.12.19 x86_64-unknown-linux-gnu
+installing to /root/.local/bin
+  uv
+  uvx
+everything's installed!
+
+To add $HOME/.local/bin to your PATH, either restart your shell or run:
+
+    source $HOME/.local/bin/env (sh, bash, zsh)
+    source $HOME/.local/bin/env.fish (fish)
+2.14.0+cu130 3.8.0 NVIDIA A100-SXM4-80GB
+fused kernel runs on the GPU and matches the reference
+R= 8 T= 1  dense    14.2 us  reference   312.7 us  fused    16.6 us (2, 8, 2, 10, 4)  dispatch 15.2 us  (64/64 configs ok)
+R= 8 T= 8  dense    20.4 us  reference   321.4 us  fused    21.7 us (4, 4, 4, 5, 4)  dispatch 15.7 us  (88/88 configs ok)
+R= 8 T=32  dense    16.2 us  reference   316.5 us  fused    60.1 us (2, 8, 4, 1, 4)  dispatch 9.9 us  (44/44 configs ok)
+R=16 T= 1  dense    14.4 us  reference   337.5 us  fused    40.0 us (1, 16, 2, 10, 8)  dispatch 15.5 us  (20/20 configs ok)
+R=16 T=32  dense    16.1 us  reference   455.8 us  fused   345.8 us (4, 4, 1, 2, 8)  dispatch 15.4 us  (14/14 configs ok)
+Wrote /root/tr/src/factorized_inference/tuned_configs.json
+......................                                                   [100%]
+22 passed in 53.29s
+USDT:2026-09-27 14:43:56 2721:2721 SyncActivityProfilerHandler.cpp:39] profiler_start
+USDT:2026-09-27 14:43:56 2721:2721 SyncActivityProfilerHandler.cpp:46] profiler_stop
+tokens=1 dense: host=0.0314 ms; CUDA stream=0.014387199282646179 ms; steady allocated peak=19589120 bytes
+USDT:2026-09-27 14:44:00 2755:2755 SyncActivityProfilerHandler.cpp:39] profiler_start
+USDT:2026-09-27 14:44:00 2755:2755 SyncActivityProfilerHandler.cpp:46] profiler_stop
+tokens=1 factorized_reference: host=0.2754 ms; CUDA stream=0.26746881008148193 ms; steady allocated peak=9672704 bytes
+USDT:2026-09-27 14:44:04 2789:2789 SyncActivityProfilerHandler.cpp:39] profiler_start
+USDT:2026-09-27 14:44:04 2789:2789 SyncActivityProfilerHandler.cpp:46] profiler_stop
+tokens=1 factorized_optimized: host=0.0341 ms; CUDA stream=0.018483200669288637 ms; steady allocated peak=99328 bytes
+tokens=8 dense: host=0.0360 ms; CUDA stream=0.019148799777030944 ms; steady allocated peak=19655680 bytes
+tokens=8 factorized_reference: host=0.2806 ms; CUDA stream=0.26997759342193606 ms; steady allocated peak=17010688 bytes
+tokens=8 factorized_optimized: host=0.0433 ms; CUDA stream=0.0247296005487442 ms; steady allocated peak=165888 bytes
+tokens=32 dense: host=0.0290 ms; CUDA stream=0.013209599256515502 ms; steady allocated peak=19886080 bytes
+tokens=32 factorized_reference: host=0.2805 ms; CUDA stream=0.26460158824920654 ms; steady allocated peak=43612160 bytes
+tokens=32 factorized_optimized: host=0.0771 ms; CUDA stream=0.06082559823989868 ms; steady allocated peak=396288 bytes
+Wrote results/rank8.json
+tokens=1 dense: host=0.0327 ms; CUDA stream=0.015769599378108977 ms; steady allocated peak=19589120 bytes
+tokens=1 factorized_reference: host=0.3080 ms; CUDA stream=0.284006404876709 ms; steady allocated peak=13119488 bytes
+tokens=1 factorized_optimized: host=0.0553 ms; CUDA stream=0.03527680039405823 ms; steady allocated peak=366592 bytes
+tokens=32 dense: host=0.0320 ms; CUDA stream=0.015718400478363037 ms; steady allocated peak=19886080 bytes
+tokens=32 factorized_reference: host=0.4650 ms; CUDA stream=0.38241279125213623 ms; steady allocated peak=145375232 bytes
+tokens=32 factorized_optimized: host=0.4118 ms; CUDA stream=0.3866624116897583 ms; steady allocated peak=663552 bytes
+Wrote results/rank16.json
+Done: copy gpu_artifacts.tgz back, then stop AND delete the instance.

@@ -1,0 +1,92 @@
+Sun Sep 27 14:13:01 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 580.178.04             Driver Version: 580.178.04     CUDA Version: 13.0     |
++-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA A100-SXM4-80GB          On  |   00000000:05:00.0 Off |                  Off |
+| N/A   31C    P0             51W /  400W |       0MiB /  81920MiB |      0%      Default |
+|                                         |                        |             Disabled |
++-----------------------------------------+------------------------+----------------------+
+
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+
+downloading uv 0.12.19 x86_64-unknown-linux-gnu
+installing to /root/.local/bin
+  uv
+  uvx
+everything's installed!
+2.14.0+cu130 3.8.0 NVIDIA A100-SXM4-80GB
+fused kernel runs on the GPU and matches the reference
+R= 8 T= 1  dense    14.6 us  reference   313.0 us  fused    37.9 us (2, 8, 4, 1, 8)  dispatch 34.6 us  (64/64 configs ok)
+R= 8 T= 8  dense    23.9 us  reference   325.4 us  fused    37.8 us (2, 8, 2, 1, 8)  dispatch 35.2 us  (88/88 configs ok)
+R= 8 T=32  dense    16.3 us  reference   317.5 us  fused    61.2 us (2, 8, 4, 1, 4)  dispatch 36.4 us  (44/44 configs ok)
+R=16 T= 1  dense    13.9 us  reference   337.4 us  fused    51.6 us (1, 16, 2, 10, 8)  dispatch 48.1 us  (20/20 configs ok)
+R=16 T=32  dense    14.8 us  reference   420.4 us  fused   353.3 us (4, 4, 1, 2, 8)  dispatch 47.7 us  (14/14 configs ok)
+Wrote /root/tr/src/factorized_inference/tuned_configs.json
+......................                                                   [100%]
+22 passed in 51.06s
+Traceback (most recent call last):
+  File "/root/tr/benchmarks/benchmark.py", line 290, in <module>
+    main()
+  File "/root/tr/benchmarks/benchmark.py", line 243, in main
+    args.output.write_text(json.dumps(worker(args), indent=2) + "\n")
+                                      ^^^^^^^^^^^^
+  File "/root/tr/.venv/lib/python3.12/site-packages/torch/utils/_contextlib.py", line 124, in decorate_context
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/root/tr/benchmarks/benchmark.py", line 88, in worker
+    torch.cuda.set_device(device)
+  File "/root/tr/.venv/lib/python3.12/site-packages/torch/cuda/__init__.py", line 749, in set_device
+    device = _get_device_index(device)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/tr/.venv/lib/python3.12/site-packages/torch/cuda/_utils.py", line 634, in _get_device_index
+    return _torch_get_device_index(device, optional, allow_cpu)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/tr/.venv/lib/python3.12/site-packages/torch/_utils.py", line 919, in _get_device_index
+    raise ValueError(
+ValueError: Expected a torch.device with a specified index or an integer, but got:cuda
+Traceback (most recent call last):
+  File "/root/tr/benchmarks/benchmark.py", line 290, in <module>
+    main()
+  File "/root/tr/benchmarks/benchmark.py", line 276, in main
+    subprocess.run(command, check=True)
+  File "/root/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/subprocess.py", line 571, in run
+    raise CalledProcessError(retcode, process.args,
+subprocess.CalledProcessError: Command '['/root/tr/.venv/bin/python', '/root/tr/benchmarks/benchmark.py', '--worker', 'dense', '--tokens', '1', '--output', '/tmp/factorized-benchmark-8ypqvc0z/dense-1.json', '--device', 'cuda', '--dtype', 'float16', '--rank', '8', '--warmup', '20', '--iterations', '100', '--event-block', '20', '--cpu-threads', '1', '--seed', '0', '--input-modes', '8,12,20', '--output-modes', '12,10,24', '--profile-dir', '/root/tr/traces/rank8']' returned non-zero exit status 1.
+Traceback (most recent call last):
+  File "/root/tr/benchmarks/benchmark.py", line 290, in <module>
+    main()
+  File "/root/tr/benchmarks/benchmark.py", line 243, in main
+    args.output.write_text(json.dumps(worker(args), indent=2) + "\n")
+                                      ^^^^^^^^^^^^
+  File "/root/tr/.venv/lib/python3.12/site-packages/torch/utils/_contextlib.py", line 124, in decorate_context
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/root/tr/benchmarks/benchmark.py", line 88, in worker
+    torch.cuda.set_device(device)
+  File "/root/tr/.venv/lib/python3.12/site-packages/torch/cuda/__init__.py", line 749, in set_device
+    device = _get_device_index(device)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/tr/.venv/lib/python3.12/site-packages/torch/cuda/_utils.py", line 634, in _get_device_index
+    return _torch_get_device_index(device, optional, allow_cpu)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/tr/.venv/lib/python3.12/site-packages/torch/_utils.py", line 919, in _get_device_index
+    raise ValueError(
+ValueError: Expected a torch.device with a specified index or an integer, but got:cuda
+Traceback (most recent call last):
+  File "/root/tr/benchmarks/benchmark.py", line 290, in <module>
+    main()
+  File "/root/tr/benchmarks/benchmark.py", line 276, in main
+    subprocess.run(command, check=True)
+  File "/root/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/subprocess.py", line 571, in run
+    raise CalledProcessError(retcode, process.args,
+subprocess.CalledProcessError: Command '['/root/tr/.venv/bin/python', '/root/tr/benchmarks/benchmark.py', '--worker', 'dense', '--tokens', '1', '--output', '/tmp/factorized-benchmark-ac3hcne_/dense-1.json', '--device', 'cuda', '--dtype', 'float16', '--rank', '16', '--warmup', '20', '--iterations', '100', '--event-block', '20', '--cpu-threads', '1', '--seed', '0', '--input-modes', '8,12,20', '--output-modes', '12,10,24']' returned non-zero exit status 1.
+Done: copy gpu_artifacts.tgz back, then stop AND delete the instance.

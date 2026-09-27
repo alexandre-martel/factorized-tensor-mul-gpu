@@ -1,0 +1,8 @@
+NVIDIA A100-SXM4-80GB, config (1, 16, 2, 10, 4)
+F1-F3  Triton JIT launch (kernel[grid](...))   dispatch   17.0 us   stream   18.9 us
+F4-F5  compiled launcher + torch.empty         dispatch    9.5 us   stream   11.7 us
+F6     C launch + reused output (FusedTR)      dispatch    4.7 us   stream   10.3 us
+F6     prepare_optimized callable (harness)    dispatch    5.7 us   stream   10.5 us
+dense  F.linear (cuBLAS)                       dispatch   13.3 us   stream   15.9 us
+torch.empty(1, 2880) alone                     dispatch    2.9 us
+current-stream query alone                     dispatch    0.1 us

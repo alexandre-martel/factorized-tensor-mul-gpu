@@ -1,0 +1,16 @@
+NVIDIA A100-SXM4-80GB: CUDA-graph replay (input copy included)
+R= 8 T= 1 dense                 replay    17.5 us   capture    0.8 ms   graph memory   8.13 MiB   correct True
+R= 8 T= 1 factorized_reference  replay    37.3 us   capture    1.5 ms   graph memory   8.13 MiB   correct True
+R= 8 T= 1 factorized_optimized  replay    13.2 us   capture    0.9 ms   graph memory   0.00 MiB   correct True
+R= 8 T= 8 dense                 replay    14.5 us   capture    1.2 ms   graph memory   8.17 MiB   correct True
+R= 8 T= 8 factorized_reference  replay    64.2 us   capture    1.5 ms   graph memory   8.17 MiB   correct True
+R= 8 T= 8 factorized_optimized  replay    24.2 us   capture    0.7 ms   graph memory   0.00 MiB   correct True
+R= 8 T=32 dense                 replay    17.9 us   capture    1.0 ms   graph memory   8.30 MiB   correct True
+R= 8 T=32 factorized_reference  replay   141.7 us   capture    1.7 ms   graph memory   8.30 MiB   correct True
+R= 8 T=32 factorized_optimized  replay    51.4 us   capture    0.8 ms   graph memory   0.00 MiB   correct True
+R=16 T= 1 dense                 replay    17.4 us   capture    1.1 ms   graph memory   8.13 MiB   correct True
+R=16 T= 1 factorized_reference  replay    50.7 us   capture    1.4 ms   graph memory   8.13 MiB   correct True
+R=16 T= 1 factorized_optimized  replay    43.7 us   capture    0.6 ms   graph memory   0.00 MiB   correct True
+R=16 T=32 dense                 replay    17.9 us   capture    1.2 ms   graph memory   8.30 MiB   correct True
+R=16 T=32 factorized_reference  replay   424.8 us   capture    2.0 ms   graph memory   8.30 MiB   correct True
+R=16 T=32 factorized_optimized  replay   331.0 us   capture    1.0 ms   graph memory   0.00 MiB   correct True

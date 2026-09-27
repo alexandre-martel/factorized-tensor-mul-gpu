@@ -9,10 +9,18 @@ nvidia-smi | tee results/nvidia-smi.txt
 
 command -v uv >/dev/null || curl -LsSf https://astral.sh/uv/install.sh | sh
 export PATH="$HOME/.local/bin:$PATH"
-rm -rf .venv && uv venv -q --seed -p 3.12 .venv
+# uv-managed Python ships its headers (Python.h), which Triton needs to build its launcher.
+rm -rf .venv && uv venv -q --seed --managed-python -p 3.12 .venv
 source .venv/bin/activate
 uv pip install -q -e '.[test]'
 python -c "import torch, triton; assert torch.cuda.is_available(), 'CUDA unavailable: driver too old for CUDA 13?'; print(torch.__version__, triton.__version__, torch.cuda.get_device_name())"
+python -c "
+import torch
+from factorized_inference import TRSpec, make_cores, prepare_optimized, tr_forward_reference
+s = TRSpec(); c = make_cores(s, device='cuda', dtype=torch.float16)
+x = torch.randn(1, s.in_features, device='cuda', dtype=torch.float16)
+torch.testing.assert_close(prepare_optimized(c, s)(x).float(), tr_forward_reference(x, c, s).float(), rtol=2e-2, atol=2e-2)
+print('fused kernel runs on the GPU and matches the reference')"
 
 set +e  # from here on, run every step and always pack the artifacts
 python benchmarks/tune.py --output results/tune.json --write 2>&1 | tee results/tune.txt

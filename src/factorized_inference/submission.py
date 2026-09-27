@@ -41,9 +41,11 @@ def prepare_optimized(
 ) -> Callable[[torch.Tensor], torch.Tensor]:
     """Validate once and bind the cores; the kernel reads them in place (no weight copy).
 
-    Each call returns a newly allocated output. The only retained state is the compiled
-    kernel's launcher per token count, owned by this callable, so prepared callables for
-    different weights are independent.
+    Reusable output storage: on CUDA, the returned tensor is a buffer reused by the next
+    call with the same token count, so consume it (or copy it) before calling again.
+    Retained state, owned by this callable (prepared callables for different weights are
+    independent): per token count, the compiled kernel's launch arguments, the output
+    buffer and the split-K scratch.
     """
 
     cores = tuple(c.contiguous() for c in cores)  # no copy for contiguous cores

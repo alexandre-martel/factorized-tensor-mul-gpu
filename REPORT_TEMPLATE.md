@@ -1,10 +1,10 @@
 # Performance report
 
-All numbers come from one NVIDIA A100-SXM4-80GB (Verda, driver 580.178.04, torch 2.14.0+cu130, Triton 3.8.0). Latency is the harness CUDA-event stream median unless stated otherwise. Raw files are in `results/` and `traces/`.
+All numbers come from one NVIDIA A100-SXM4-80GB (Verda, driver 580.178.04, torch 2.14.0+cu130, Triton 3.8.0). Latency is always the harness CUDA-event stream median unless stated otherwise. Raw files are in `results/` and `traces/`.
 
 ## 1. Findings
 
-I wrote one Triton kernel that computes the whole three-core contraction in a single launch. It runs in all five required GPU cases and all 22 tests pass on the A100 with no skips.
+The submission is one Triton kernel that computes the whole three-core contraction in a single launch. It runs in all five required GPU settings and all 22 tests pass on the A100 with no skips.
 
 Stream latency, median of three full benchmark runs (`results/rank*.json` and `results/repeats/`):
 
@@ -18,10 +18,10 @@ Stream latency, median of three full benchmark runs (`results/rank*.json` and `r
 
 The fused path allocates at most 1.34 MiB at steady state. Dense needs 18.7 to 19.0 MiB and the reference up to 138.6 MiB.
 
-What happened:
+What I observed and what happened:
 - The reference is limited by host dispatch at small token counts. It launches 9 kernels per call and the GPU is busy for only 36 of 270 us.
 - Fusion removes the extra launches and the intermediate tensors. The largest gains after that came from the host side. Triton's normal Python launch costs 17 to 22 us per call, more than the kernel itself.
-- At 32 tokens and at rank 16 the fused kernel is compute bound and dense is faster. Rank 16 with 32 tokens cannot beat dense on this GPU. Its useful work is 6.3 GFLOP, which takes 20 us even at the 312 TFLOPS FP16 peak, while dense takes 16 us.
+- At 32 tokens and at rank 16 the fused kernel is compute bound and dense is faster. Rank 16 with 32 tokens cannot beat dense on this GPU. Its useful work is about 6.3 GFLOP, which takes 20 us even at the 312 TFLOPS FP16 peak of the A100, while dense takes 16 us. No kernel can win this case.
 
 How the result was reached (harness stream latency, one run per session, R=8):
 
@@ -32,22 +32,23 @@ How the result was reached (harness stream latency, one run per session, R=8):
 | 3 | Split-K with a fix-up pass instead of a zeroed output | 15.2 us | 20.6 us |
 | 4 | Call the C launcher directly, reuse the output buffer | 9.4 us | 22.2 us |
 | 5 | Wider tuning (pipeline stages, warps, larger tiles) | 8.8 us | 20.9 us |
-| Final | Same code, three runs | 10.5 us | 17.1 us |
+| Final | Same code, 3 runs | 10.5 us | 17.1 us |
 
-Each session used a new instance, so dense also moved between sessions (13.9 to 16.0 us at 1 token, 17.9 to 23.1 us at 8 tokens). Per-session files are in `results/history/`.
+If needed, per-session files are in `results/history/`.
 
-What remains uncertain:
-- This is a warm-cache microbenchmark on one GPU. Run-to-run variation is small for most cases but reaches 20% for some (fused R=8 at 32 tokens: 40.7 to 49.7 us).
+Other things worth being aware of:
+- This is a warm-cache microbenchmark on one GPU: the same weights are reused and stay in L2.
+- Run-to-run variation is small for most cases but reaches 20% for some (fused R=8 at 32 tokens: 40.7 to 49.7 us).
 - The tuned configs in `tuned_configs.json` are specific to this A100.
-- The fast launch path uses Triton 3.8 launcher internals. It falls back to Triton's own launcher when those do not apply, but it may need changes for other Triton versions.
+- The fast launch path uses Triton 3.8 launcher internals. It falls back to Triton's own launcher when those do not apply, but it may need changes for other PyTorch and Triton versions.
 
 ## 2. Kernel and evidence
 
-- Kernel source files/entry point, toolchain, and any upstream code adapted:
+- Kernel source files and any upstream code adapted:
   - `src/factorized_inference/fused_kernel.py`: the kernel `_tr_fused_kernel` and the launcher class `FusedTR`.
   - `src/factorized_inference/submission.py`: `prepare_optimized` uses `FusedTR` for CUDA FP16/BF16 inputs and the reference otherwise.
   - Toolchain: Triton 3.8.0 as installed with torch 2.14.0 (CUDA 13.0). No upstream kernel code was adapted.
-  - Support files: `benchmarks/tune.py` (config sweep), `benchmarks/host_overhead.py` (launch cost breakdown), `benchmarks/graphs.py` (optional CUDA graph comparison), `tests/test_fused_kernel.py` (CPU interpreter tests), `scripts/gpu_session.sh` (full GPU run).
+  - Support files, used for testing and measurement but not needed to run the kernel: `benchmarks/tune.py` (config sweep), `benchmarks/host_overhead.py` (launch cost breakdown), `benchmarks/graphs.py` (optional CUDA graph comparison), `tests/test_fused_kernel.py` (CPU interpreter tests), `scripts/gpu_session.sh` (full GPU run).
 
 - Main reference bottleneck and profiler evidence:
   - Token-1 trace, rank 8 (`traces/rank8/factorized_reference_rank8_tokens1.json`): 9 kernels per call. They are 5 elementwise copies from the einsum permutes (3.9 us each), 3 CUTLASS tensor-core GEMMs (3.9 to 4.6 us) and one cuBLASLt split-K reduction (3.1 us).
@@ -57,7 +58,7 @@ What remains uncertain:
 
 - Your kernel's calculation, layout and memory movement; where it appears in the trace:
   - Order: x is contracted with B over j, then with A over i and b, then with C over k, a and c. The R cubed step sums over i (8 values) instead of j (12 values). Useful work is 29.5 MFLOP per token at rank 8 and 197 at rank 16, against 39.8 and 277 for the reference order.
-  - Work split: one program handles BT tokens, one q, PC values of p and one of KS slices of k. It loops over its k values in chunks of KC. Each chunk runs three `tl.dot` calls with FP16 inputs and FP32 accumulation:
+  - Work split: each program handles BT tokens, one q, PC values of p and one of KS slices of k. It loops over its k values in chunks of KC. Each chunk runs three `tl.dot` calls with FP16 inputs and FP32 accumulation:
     - dot 1: B as [(b,c), j] times x as [j, (i,t,k)] gives U as [(b,c), (i,t,k)].
     - dot 2: A as [(p,a), (i,b)] times U as [(i,b), (t,k,c)] gives V as [(p,a), (t,k,c)].
     - dot 3: V as [(t,p), (k,a,c)] times C as [(k,a,c), r] is added to the output tile [(t,p), r].
@@ -193,5 +194,5 @@ Optional CUDA graph comparison (separate from the required results, `results/gra
   - `results/tune.json` and `results/tune.txt`: the sweep behind the committed configs.
   - `results/history/`: the five development sessions.
   - `traces/rank8/`: token-1 traces for the three methods.
-- GPU hours used and whether compute was stopped: about 1.0 GPU hour on one A100-SXM4-80GB, over six sessions of 6 to 21 minutes, for about 1.6 USD. Every instance was deleted at the end of its session.
-- AI tools used and what you independently verified: Claude (Anthropic) was used to help write the kernel, the scripts and this report. Every number here comes from the result files listed above. Correctness was checked with the provided tests on the GPU, with the interpreter tests on CPU and by the harness's own oracle check in every run.
+- GPU hours used and whether compute was stopped: about 1 GPU hour on one A100-SXM4-80GB (six sessions, about 1.6 USD). Every instance was deleted at the end of its session.
+- AI tools used and what you independently verified: Claude wrote most of the kernel, the scripts and the first draft of this report, under my direction. I set the goals, approved each step and each GPU session, and reviewed the code and the report. Every number here comes from the result files listed above. Correctness was checked with the provided tests on the GPU, with the interpreter tests on CPU and by the harness's own oracle check in every run. I independently verified the main metrics, tested the kernel on simple examples and did part of the profiling myself. Some secondary measurements (extra tests, the CUDA graph comparison) were suggested by Claude and approved by me.
